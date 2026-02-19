@@ -5,8 +5,6 @@ import ChatInterface from './components/ChatInterface';
 import { PageID, Post, Subject, Material, ChatMessage } from './types';
 import { INITIAL_SUBJECTS, PORTAL_NAME, UNASP_COLORS, ADMIN_CREDENTIALS } from './constants';
 
-// Nota: Em um ambiente real, você instalaria @supabase/supabase-js
-// Aqui simulamos a persistência que agora está pronta para receber a URL/KEY do Supabase
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState<PageID>('disciplinas');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,7 +13,6 @@ const App: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   
-  // Estados que serão alimentados pelo Supabase
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [userName, setUserName] = useState(() => localStorage.getItem('chat_user_name') || '');
@@ -24,7 +21,6 @@ const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>(INITIAL_SUBJECTS);
 
-  // Simulação de carregamento inicial do Supabase
   useEffect(() => {
     const loadData = async () => {
       const savedPosts = localStorage.getItem('supabase_posts_mirror');
@@ -38,7 +34,6 @@ const App: React.FC = () => {
     loadData();
   }, []);
 
-  // Sincronização (Simulando o Realtime do Supabase)
   useEffect(() => {
     localStorage.setItem('supabase_posts_mirror', JSON.stringify(posts));
     localStorage.setItem('supabase_subjects_mirror', JSON.stringify(subjects));
@@ -74,34 +69,51 @@ const App: React.FC = () => {
       time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     };
 
-    // Aqui seria supabase.from('chat_messages').insert(...)
     setChatMessages([...chatMessages, newMessage]);
     setChatInput('');
   };
 
   const addPost = (category: PageID, title: string, content: string) => {
+    const imageUrl = prompt('URL da Imagem (opcional - deixe em branco para ignorar):') || undefined;
     const newPost: Post = {
       id: Date.now().toString(),
       category,
       title,
       content,
+      imageUrl,
       date: new Date().toLocaleDateString('pt-BR'),
       author: 'Prof. Téo'
     };
-    // Aqui seria supabase.from('posts').insert(...)
     setPosts([newPost, ...posts]);
+  };
+
+  const deletePost = (postId: string) => {
+    if (confirm('Deseja realmente excluir esta postagem?')) {
+      setPosts(posts.filter(p => p.id !== postId));
+    }
   };
 
   const addMaterialToSubject = (subjectId: string) => {
     const name = prompt('Nome do Material:');
-    const type = prompt('Tipo do arquivo (Ex: PDF, DOCX, Link):') || 'PDF';
+    if (!name) return;
     
-    if (name) {
-      // Aqui seria supabase.from('materials').insert(...)
+    const type = prompt('Tipo do arquivo (Ex: PDF, DOCX, Link):') || 'Link';
+    const url = prompt('Cole o Link do arquivo (Google Drive, Dropbox, etc):') || '#';
+    
+    setSubjects(prev => prev.map(s => {
+      if (s.id === subjectId) {
+        const newMaterial: Material = { id: Date.now().toString(), name, type, url };
+        return { ...s, materials: [...(s.materials || []), newMaterial] };
+      }
+      return s;
+    }));
+  };
+
+  const deleteMaterial = (subjectId: string, materialId: string) => {
+    if (confirm('Deseja realmente excluir este material?')) {
       setSubjects(prev => prev.map(s => {
         if (s.id === subjectId) {
-          const newMaterial: Material = { id: Date.now().toString(), name, type };
-          return { ...s, materials: [...(s.materials || []), newMaterial] };
+          return { ...s, materials: s.materials?.filter(m => m.id !== materialId) };
         }
         return s;
       }));
@@ -140,6 +152,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Materiais Padrão Estáticos (Apenas exemplo visual se necessário) */}
               <div className="flex items-center justify-between p-6 rounded-2xl bg-slate-50 border-2 border-slate-100 hover:border-blue-200 hover:bg-white hover:shadow-md transition-all cursor-pointer group">
                 <div className="flex items-center gap-4">
                   <span className="text-3xl">📄</span>
@@ -151,27 +164,36 @@ const App: React.FC = () => {
                 <svg className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               </div>
 
-              <div className="flex items-center justify-between p-6 rounded-2xl bg-slate-50 border-2 border-slate-100 hover:border-blue-200 hover:bg-white hover:shadow-md transition-all cursor-pointer group">
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl">💻</span>
-                  <div>
-                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Slides - Aula</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">Apresentações • PPTX</p>
-                  </div>
-                </div>
-                <svg className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              </div>
-
+              {/* Materiais Dinâmicos */}
               {selectedSubject.materials?.map((material) => (
-                <div key={material.id} className="flex items-center justify-between p-6 rounded-2xl bg-white border-2 border-blue-50 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer group">
+                <div 
+                  key={material.id} 
+                  className="flex items-center justify-between p-6 rounded-2xl bg-white border-2 border-blue-50 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer group relative"
+                  onClick={() => material.url && window.open(material.url, '_blank')}
+                >
                   <div className="flex items-center gap-4">
-                    <span className="text-3xl">📎</span>
+                    <span className="text-3xl">
+                      {material.type.toUpperCase().includes('PDF') ? '📕' : material.type.toUpperCase().includes('DOC') ? '📘' : '📎'}
+                    </span>
                     <div>
                       <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{material.name}</p>
                       <p className="text-[10px] text-blue-400 font-bold uppercase">Material de Apoio • {material.type}</p>
                     </div>
                   </div>
-                  <svg className="w-5 h-5 text-blue-200 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-200 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    {isAdmin && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteMaterial(selectedSubject.id, material.id);
+                        }}
+                        className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -422,13 +444,27 @@ const App: React.FC = () => {
               </div>
             ) : (
               pagePosts.map(post => (
-                <article key={post.id} className="bg-white p-8 md:p-10 rounded-[40px] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all group">
-                  <div className="flex items-center gap-2 mb-6">
-                    <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest">{post.author}</span>
-                    <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{post.date}</span>
+                <article key={post.id} className="bg-white p-8 md:p-10 rounded-[40px] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all group overflow-hidden">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest">{post.author}</span>
+                      <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{post.date}</span>
+                    </div>
+                    {isAdmin && (
+                       <button onClick={() => deletePost(post.id)} className="text-red-400 hover:text-red-600">
+                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                       </button>
+                    )}
                   </div>
                   <h3 className="text-3xl font-black text-slate-800 mb-6 tracking-tight leading-tight group-hover:text-blue-600 transition-colors">{post.title}</h3>
+                  
+                  {post.imageUrl && (
+                    <div className="mb-8 rounded-3xl overflow-hidden shadow-inner bg-slate-100">
+                      <img src={post.imageUrl} alt={post.title} className="w-full h-auto max-h-[400px] object-cover hover:scale-105 transition-transform duration-700" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    </div>
+                  )}
+
                   <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-wrap text-base">
                     {post.content}
                   </div>
@@ -450,7 +486,6 @@ const App: React.FC = () => {
       />
       
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Top Header */}
         <header className="h-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-6 md:px-10 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button 
@@ -483,7 +518,6 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Dynamic Content Area */}
         <div className="flex-1 overflow-y-auto p-6 md:p-10">
           <div className="max-w-6xl mx-auto h-full">
             {renderContent()}
@@ -491,7 +525,6 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Login Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
           <div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-fade-in border border-slate-100">
