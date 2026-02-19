@@ -17,6 +17,7 @@ export interface Material {
   id: string;
   name: string;
   type: string;
+  url?: string;
 }
 
 export interface Post {
@@ -24,6 +25,7 @@ export interface Post {
   category: PageID;
   title: string;
   content: string;
+  imageUrl?: string;
   date: string;
   author: string;
 }
