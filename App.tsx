@@ -97,8 +97,13 @@ const App: React.FC = () => {
     const name = prompt('Nome do Material:');
     if (!name) return;
     
-    const type = prompt('Tipo do arquivo (Ex: PDF, DOCX, Link):') || 'Link';
+    let type = prompt('Tipo do arquivo (Ex: PDF, DOCX, Link):') || 'Link';
     const url = prompt('Cole o Link do arquivo (Google Drive, Dropbox, etc):') || '#';
+    
+    // Proteção: se o usuário colou um link no campo "tipo", resetamos para "Link"
+    if (type.includes('http') || type.length > 20) {
+      type = 'Link';
+    }
     
     setSubjects(prev => prev.map(s => {
       if (s.id === subjectId) {
@@ -152,7 +157,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Materiais Padrão Estáticos (Apenas exemplo visual se necessário) */}
+              {/* Materiais Estáticos de Exemplo (Sempre PDFs/Arquivos Limpos) */}
               <div className="flex items-center justify-between p-6 rounded-2xl bg-slate-50 border-2 border-slate-100 hover:border-blue-200 hover:bg-white hover:shadow-md transition-all cursor-pointer group">
                 <div className="flex items-center gap-4">
                   <span className="text-3xl">📄</span>
@@ -164,38 +169,45 @@ const App: React.FC = () => {
                 <svg className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               </div>
 
-              {/* Materiais Dinâmicos */}
-              {selectedSubject.materials?.map((material) => (
-                <div 
-                  key={material.id} 
-                  className="flex items-center justify-between p-6 rounded-2xl bg-white border-2 border-blue-50 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer group relative"
-                  onClick={() => material.url && window.open(material.url, '_blank')}
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-3xl">
-                      {material.type.toUpperCase().includes('PDF') ? '📕' : material.type.toUpperCase().includes('DOC') ? '📘' : '📎'}
-                    </span>
-                    <div>
-                      <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{material.name}</p>
-                      <p className="text-[10px] text-blue-400 font-bold uppercase">Material de Apoio • {material.type}</p>
+              {/* Materiais Dinâmicos Refinados */}
+              {selectedSubject.materials?.map((material) => {
+                // Garante que o texto do tipo seja limpo (sem URLs)
+                const safeTypeDisplay = (material.type.includes('http') || material.type.length > 20) ? 'Link' : material.type;
+                
+                return (
+                  <div 
+                    key={material.id} 
+                    className="flex items-center justify-between p-6 rounded-2xl bg-white border-2 border-blue-50 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
+                    onClick={() => material.url && window.open(material.url, '_blank')}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl">
+                        {safeTypeDisplay.toUpperCase().includes('PDF') ? '📕' : safeTypeDisplay.toUpperCase().includes('DOC') ? '📘' : '📎'}
+                      </span>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-black text-slate-800 uppercase tracking-tight line-clamp-2">{material.name}</p>
+                        <p className="text-[10px] text-blue-400 font-bold uppercase mt-1">
+                          Material de Apoio • {safeTypeDisplay}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-blue-200 group-hover:text-blue-500 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      {isAdmin && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteMaterial(selectedSubject.id, material.id);
+                          }}
+                          className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all shrink-0"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-200 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                    {isAdmin && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteMaterial(selectedSubject.id, material.id);
-                        }}
-                        className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="mt-12 p-8 rounded-[40px] bg-blue-900 text-white flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
