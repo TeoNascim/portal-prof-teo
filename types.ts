@@ -1,5 +1,5 @@
 
-export type PageID = 'disciplinas' | 'tcc' | 'extensao' | 'estagio' | 'avisos' | 'chat' | 'agente';
+export type PageID = 'disciplinas' | 'tcc' | 'extensao' | 'estagio' | 'avisos' | 'artigos' | 'chat' | 'agente';
 
 export interface Message {
   role: 'user' | 'model';
@@ -26,6 +26,7 @@ export interface Post {
   content: string;
   date: string;
   author: string;
+  image_url?: string;
 }
 
 export interface Subject {
