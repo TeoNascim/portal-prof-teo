@@ -182,6 +182,32 @@ const App: React.FC = () => {
     }
   };
 
+  const deleteMaterialFromSubject = async (subjectId: string, materialId: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este material?')) return;
+
+    const subjectToUpdate = subjects.find(s => s.id === subjectId);
+    if (!subjectToUpdate) return;
+
+    const updatedMaterials = subjectToUpdate.materials?.filter(m => m.id !== materialId) || [];
+
+    const { error } = await supabase
+      .from('subjects')
+      .update({ materials: updatedMaterials })
+      .eq('id', subjectId);
+
+    if (error) {
+      console.error("Erro do Supabase ao deletar material:", error);
+      alert("Erro ao excluir o material do banco de dados.");
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          return { ...s, materials: updatedMaterials };
+        }
+        return s;
+      }));
+    }
+  };
+
   const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
 
   const renderDisciplinas = () => {
@@ -237,15 +263,26 @@ const App: React.FC = () => {
               </div>
 
               {selectedSubject.materials?.map((material) => (
-                <div key={material.id} className="flex items-center justify-between p-6 rounded-2xl bg-white border-2 border-blue-50 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer group">
-                  <div className="flex items-center gap-4">
+                <div key={material.id} className="flex items-center justify-between p-6 rounded-2xl bg-white border-2 border-blue-50 hover:border-blue-200 hover:shadow-md transition-all group">
+                  <div className="flex items-center gap-4 cursor-pointer flex-1">
                     <span className="text-3xl">📎</span>
                     <div>
                       <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{material.name}</p>
                       <p className="text-[10px] text-blue-400 font-bold uppercase">Material de Apoio • {material.type}</p>
                     </div>
                   </div>
-                  <svg className="w-5 h-5 text-blue-200 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  <div className="flex items-center gap-4">
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteMaterialFromSubject(selectedSubject.id, material.id); }}
+                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        title="Excluir Material"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
+                    <svg className="w-5 h-5 text-blue-200 group-hover:text-blue-500 transition-colors cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  </div>
                 </div>
               ))}
             </div>
