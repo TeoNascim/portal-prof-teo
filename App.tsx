@@ -155,18 +155,26 @@ const App: React.FC = () => {
 
         const updatedMaterials = [...(subjectToUpdate.materials || []), newMaterial];
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('subjects')
           .update({ materials: updatedMaterials })
-          .eq('id', subjectId);
+          .eq('id', subjectId)
+          .select();
 
-        if (!error) {
+        if (error) {
+          console.error("Erro do Supabase ao salvar material:", error);
+          alert("Erro do banco de dados: " + error.message);
+        } else if (!data || data.length === 0) {
+          console.error("Nenhuma disciplina atualizada (possível problema com RLS ou ID não encontrado).");
+          alert("Nenhuma disciplina atualizada. Verifique suas políticas de RLS e o Console do Desenvolvedor.");
+        } else {
           setSubjects(prev => prev.map(s => {
             if (s.id === subjectId) {
               return { ...s, materials: updatedMaterials };
             }
             return s;
           }));
+          alert("Material salvo com sucesso no banco de dados!");
         }
       };
 
